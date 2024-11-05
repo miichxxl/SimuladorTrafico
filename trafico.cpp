@@ -1,13 +1,13 @@
-#include <iostream>
 #include <queue>
 #include <string>
 #include <thread>
 #include <chrono>
-#include <cstdlib> // Añadiendo la función rand()
+#include <cstdlib>     // Para rand()
+#include <iostream>
 
 using namespace std;
 
-// Estructura que representa un auto en la simulación de tráfico | "El Constructor Estrucutra" 
+// Estructura que representa un auto en la simulación de tráfico
 struct Auto {
     int id;
     int tiempoEntrada;
@@ -20,11 +20,12 @@ public:
     queue<Auto> marbella;          // Cola para autos de "Marbella"
     int duracionLuzVerde;          // Duración del semáforo en verde 
     int duracionLuzRoja;           // Duración del semáforo en rojo 
-    int autosPorSegundo;           // Cantidad de autos que pueden cruzar
+    int autosPorCiclo;             // Máximo de autos que pueden pasar luz verde
+    int tiempoTotal = 0;           // Tiempo total de simulación
 
     // Constructor
-    Interseccion(int duracionLuzVerde, int duracionLuzRoja, int autosPorSegundo) 
-        : duracionLuzVerde(duracionLuzVerde), duracionLuzRoja(duracionLuzRoja), autosPorSegundo(autosPorSegundo) {}
+    Interseccion(int duracionLuzVerde, int duracionLuzRoja, int autosPorCiclo) 
+        : duracionLuzVerde(duracionLuzVerde), duracionLuzRoja(duracionLuzRoja), autosPorCiclo(autosPorCiclo) {}
 
     // Simula el tráfico en la intersección
     void simularTrafico(int totalAutosCalle50, int totalAutosMarbella) {
@@ -40,10 +41,11 @@ public:
         t2.join();
 
         cout << "\nSimulación de tráfico completada.\n";
+        cout << "⏱️ Tiempo total de simulación: " << tiempoTotal << " segundos.\n";
     }
 
 private:
-    // Llena la cola de autos en una calle con el número de autos que declaramos
+    // Llena la cola de autos en una calle con el número de autos especificado
     void llenarCola(queue<Auto>& calle, int numAutos) {
         for (int i = 1; i <= numAutos; ++i) {
             calle.push({i, 0});
@@ -58,18 +60,21 @@ private:
             if (enVerde) {
                 cout << "\n🟢 [INICIO] Semáforo en VERDE para " << nombreCalle << " - Tiempo: " << duracionLuzVerde << " segundos\n";
 
-                for (int i = 0; i < duracionLuzVerde && !calle.empty(); ++i) {
-                    int autosEnEsteSegundo = rand() % autosPorSegundo + 1; // Cantidad aleatoria de autos que pasan este segundo
+                // Permite que pasen autos hasta alcanzar el máximo permitido en un ciclo
+                for (int i = 0; i < duracionLuzVerde && autosPasados < autosPorCiclo && !calle.empty(); ++i) {
+                    int autosEnEsteSegundo = min(rand() % autosPorCiclo + 1, autosPorCiclo - autosPasados); // Máximo de autos restantes permitidos en este ciclo
                     for (int j = 0; j < autosEnEsteSegundo && !calle.empty(); ++j) {
                         calle.pop();
                         autosPasados++;
                     }
-                    this_thread::sleep_for(chrono::seconds(1)); // Simula el paso, en tiempo real
+//                   this_thread::sleep_for(chrono::seconds(1)); // Simula el paso en tiempo real
                 }
                 cout << "🚗 Pasaron " << autosPasados << " autos en " << nombreCalle << ".\n";
+                tiempoTotal += duracionLuzVerde; // Suma el tiempo de luz verde al tiempo total
             } else {
                 cout << "\n🔴 [INICIO] Semáforo en ROJO para " << nombreCalle << " - Tiempo: " << duracionLuzRoja << " segundos\n";
-                this_thread::sleep_for(chrono::seconds(duracionLuzRoja));
+//                this_thread::sleep_for(chrono::seconds(duracionLuzRoja));
+                tiempoTotal += duracionLuzRoja; // Suma el tiempo de luz roja al tiempo total
             }
 
             enVerde = !enVerde; // Cambia el semáforo
@@ -80,17 +85,17 @@ private:
 
 // MAIN
 int main() {
-    srand(time(0)); // Inicializa la semilla para generar números aleatorios de autos, para ver cuantos cruzan
+ //   srand(time(0)); // Inicializa la semilla para números aleatorios
 
     int duracionLuzVerde = 18; // Duración de la luz verde
     int duracionLuzRoja = 25;  // Duración de la luz roja
-    int autosPorSegundo = 30;  // Cantidad de autos que pueden cruzar
+    int autosPorCiclo = 25;    // Máximo de autos para cruzaer la luz verde
 
     // Crear la intersección con los parámetros especificados
-    Interseccion interseccion(duracionLuzVerde, duracionLuzRoja, autosPorSegundo);
+    Interseccion interseccion(duracionLuzVerde, duracionLuzRoja, autosPorCiclo);
 
     // Simular el tráfico en la intersección, los 2500 son de Calle 50 y los 4000 de Marbella  
-   interseccion.simularTrafico(2500, 4000);
+    interseccion.simularTrafico(1500, 2000);
 
     return 0;
 }
